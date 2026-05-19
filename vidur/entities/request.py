@@ -1,9 +1,63 @@
-from typing import Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 from vidur.entities.base_entity import BaseEntity
 from vidur.logger import init_logger
 
 logger = init_logger(__name__)
+
+
+@dataclass(frozen=True)
+class RequestModality:
+    modality: str
+    item_count: int = 1
+    encoder_tokens: int = 0
+    encoder_time_scale: float = 1.0
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "modality": self.modality,
+            "item_count": self.item_count,
+            "encoder_tokens": self.encoder_tokens,
+            "encoder_time_scale": self.encoder_time_scale,
+            "metadata": self.metadata,
+        }
+
+
+@dataclass(frozen=True)
+class RequestWorkload:
+    prefill_tokens: int
+    decode_tokens: int
+    modalities: List[RequestModality] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def encoder_tokens(self) -> int:
+        return sum(modality.encoder_tokens for modality in self.modalities)
+
+    @property
+    def total_input_tokens(self) -> int:
+        return self.prefill_tokens + self.encoder_tokens
+
+    @property
+    def total_tokens(self) -> int:
+        return self.prefill_tokens + self.decode_tokens
+
+    @property
+    def has_modalities(self) -> bool:
+        return len(self.modalities) > 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "prefill_tokens": self.prefill_tokens,
+            "decode_tokens": self.decode_tokens,
+            "encoder_tokens": self.encoder_tokens,
+            "total_input_tokens": self.total_input_tokens,
+            "total_tokens": self.total_tokens,
+            "modalities": [modality.to_dict() for modality in self.modalities],
+            "metadata": self.metadata,
+        }
 
 
 # a decorator which checks if the request has been scheduled
@@ -32,12 +86,22 @@ class Request(BaseEntity):
         num_prefill_tokens: int,
         num_decode_tokens: int,
         num_processed_tokens: int = 0,
+        modalities: Optional[List[RequestModality]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         self._id = Request.generate_id()
         self._arrived_at = arrived_at
         self._num_prefill_tokens = num_prefill_tokens
         self._num_decode_tokens = num_decode_tokens
         self._num_processed_tokens = num_processed_tokens
+        self._modalities = list(modalities) if modalities else []
+        self._metadata = dict(metadata) if metadata else {}
+        self._workload = RequestWorkload(
+            prefill_tokens=self._num_prefill_tokens,
+            decode_tokens=self._num_decode_tokens,
+            modalities=self._modalities,
+            metadata=self._metadata,
+        )
 
         self._scheduled_at = 0
         self._execution_time = 0
@@ -62,6 +126,10 @@ class Request(BaseEntity):
     @property
     def size(self) -> Tuple[int, int]:
         return (self._num_prefill_tokens, self._num_decode_tokens)
+
+    @property
+    def workload(self) -> RequestWorkload:
+        return self._workload
 
     @property
     @check_scheduled
@@ -146,6 +214,30 @@ class Request(BaseEntity):
     @property
     def arrived_at(self) -> float:
         return self._arrived_at
+
+    @property
+    def modalities(self) -> List[RequestModality]:
+        return list(self._modalities)
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return dict(self._metadata)
+
+    @property
+    def has_modalities(self) -> bool:
+        return self._workload.has_modalities
+
+    @property
+    def num_modalities(self) -> int:
+        return len(self._modalities)
+
+    @property
+    def num_encoder_tokens(self) -> int:
+        return self._workload.encoder_tokens
+
+    @property
+    def total_input_tokens(self) -> int:
+        return self._workload.total_input_tokens
 
     @property
     def num_prefill_tokens(self) -> int:
@@ -280,6 +372,8 @@ class Request(BaseEntity):
             "completed_at": self._completed_at,
             "num_prefill_tokens": self._num_prefill_tokens,
             "num_decode_tokens": self._num_decode_tokens,
+            "num_encoder_tokens": self.num_encoder_tokens,
+            "num_modalities": self.num_modalities,
             "num_processed_tokens": self._num_processed_tokens,
             "scheduled": self._scheduled,
             "preempted": self._preempted,
@@ -289,6 +383,7 @@ class Request(BaseEntity):
             "latest_iteration_scheduled_at": self._latest_iteration_scheduled_at,
             "latest_iteration_completed_at": self._latest_iteration_completed_at,
             "num_restarts": self._num_restarts,
+            "workload": self._workload.to_dict(),
         }
 
     def restart(self):
