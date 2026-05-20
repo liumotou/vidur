@@ -125,6 +125,92 @@ or to get information on all parameters,
 python -m vidur.main -h
 ```
 
+## Running Multimodal Workloads
+
+The simulator can now attach multimodal request metadata and approximate encoder-side cost/memory for VLM-style workloads. The current implementation is intended for image-plus-text input with text output, while keeping backward compatibility with text-only traces.
+
+More detailed format and modeling notes are documented [here](docs/multimodal.md).
+
+### Multimodal trace format
+
+The easiest path is to add a `modalities` JSON column and an optional `request_metadata` JSON column to your trace CSV. A ready-to-run example is available at `data/processed_traces/multimodal_vlm_sample.csv`.
+
+Supported multimodal trace columns:
+
+| Column | Required | Description |
+| --- | --- | --- |
+| `arrived_at` | Yes | Request arrival time in seconds |
+| `num_prefill_tokens` | Yes | Text prefill tokens |
+| `num_decode_tokens` | Yes | Output decode tokens |
+| `modalities` | No | JSON list of modality descriptors |
+| `request_metadata` | No | JSON object for request-level metadata |
+
+Each entry in the `modalities` JSON list may contain:
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `modality` | Yes | Modality name such as `image` |
+| `item_count` | No | Number of items for this modality |
+| `encoder_tokens` | No | Approximate encoder token budget contributed by the modality |
+| `encoder_time_scale` | No | Relative multiplier for encoder-side execution time |
+| `metadata` | No | Free-form JSON object |
+
+If you do not want to use a JSON list, trace replay also supports the fallback columns `modality`, `modality_item_count`, `modality_encoder_tokens`, `modality_encoder_time_scale`, and `modality_metadata`.
+
+### Example: multimodal trace replay
+
+```sh
+python -m vidur.main \
+--replica_config_device a100 \
+--replica_config_model_name meta-llama/Meta-Llama-3-8B \
+--cluster_config_num_replicas 1 \
+--replica_config_tensor_parallel_size 1 \
+--replica_config_num_pipeline_stages 1 \
+--request_generator_config_type trace_replay \
+--trace_request_generator_config_trace_file ./data/processed_traces/multimodal_vlm_sample.csv \
+--trace_request_generator_config_max_tokens 2048 \
+--trace_request_generator_config_max_encoder_tokens_per_request 1152 \
+--replica_scheduler_config_type sarathi \
+--sarathi_scheduler_config_batch_size_cap 128 \
+--sarathi_scheduler_config_chunk_size 256 \
+--random_forrest_execution_time_predictor_config_prediction_max_prefill_chunk_size 4096 \
+--random_forrest_execution_time_predictor_config_prediction_max_batch_size 128 \
+--random_forrest_execution_time_predictor_config_prediction_max_tokens_per_request 4096
+```
+
+### Example: synthetic multimodal workload
+
+```sh
+python -m vidur.main \
+--replica_config_device a100 \
+--replica_config_model_name meta-llama/Meta-Llama-3-8B \
+--cluster_config_num_replicas 1 \
+--request_generator_config_type synthetic \
+--synthetic_request_generator_config_num_requests 128 \
+--synthetic_request_generator_config_enable_multimodal true \
+--synthetic_request_generator_config_multimodal_fraction 0.5 \
+--synthetic_request_generator_config_modality_name image \
+--synthetic_request_generator_config_modality_item_count 1 \
+--synthetic_request_generator_config_modality_encoder_tokens 576 \
+--synthetic_request_generator_config_modality_encoder_time_scale 1.35 \
+--synthetic_request_generator_config_modality_metadata "{\"resolution\":\"448x448\"}" \
+--synthetic_request_generator_config_request_metadata "{\"workload_type\":\"vlm_synth\"}" \
+--length_generator_config_type fixed \
+--fixed_request_length_generator_config_prefill_tokens 128 \
+--fixed_request_length_generator_config_decode_tokens 32 \
+--interval_generator_config_type poisson \
+--poisson_request_interval_generator_config_qps 2.0 \
+--replica_scheduler_config_type sarathi
+```
+
+### Current modeling scope
+
+The current multimodal support is intentionally conservative:
+
+* Modality encoder cost is approximated using existing prefill execution-time predictions scaled by `encoder_time_scale`.
+* Encoder tokens are counted towards request input length and initial KV-cache/block reservation.
+* Schedulers do not yet model a separate encoder resource pool; multimodal requests still flow through the existing prefill/decode pipeline.
+
 ## Simulator Output
 
 * The metrics will be logged to wandb directly and a copy will be stored in the `simulator_output/<TIMESTAMP>` directory. __A description of all the logged metrics can be found [here](docs/metrics.md).__
@@ -165,4 +251,3 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
-

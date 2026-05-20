@@ -1,0 +1,6 @@
+arrived_at,num_prefill_tokens,num_decode_tokens,modalities,request_metadata
+0.0,96,24,"[{""modality"":""image"",""item_count"":1,""encoder_tokens"":576,""encoder_time_scale"":1.35,""metadata"":{""resolution"":""448x448"",""source"":""product-photo""}}]","{""workload_type"":""vlm_single_image_qa"",""conversation_id"":""mm-0001""}"
+1.2,128,32,"[{""modality"":""image"",""item_count"":2,""encoder_tokens"":1152,""encoder_time_scale"":1.6,""metadata"":{""resolution"":""336x336"",""source"":""chart+caption""}}]","{""workload_type"":""vlm_multi_image_reasoning"",""conversation_id"":""mm-0002""}"
+2.05,72,18,,"{""workload_type"":""text_only_baseline"",""conversation_id"":""mm-0003""}"
+3.4,160,40,"[{""modality"":""image"",""item_count"":1,""encoder_tokens"":256,""encoder_time_scale"":1.1,""metadata"":{""resolution"":""224x224"",""source"":""thumbnail""}}]","{""workload_type"":""vlm_captioning"",""conversation_id"":""mm-0004""}"
+4.9,192,64,"[{""modality"":""image"",""item_count"":1,""encoder_tokens"":576,""encoder_time_scale"":1.5,""metadata"":{""resolution"":""448x448"",""source"":""document-scan""}}]","{""workload_type"":""vlm_doc_qa"",""conversation_id"":""mm-0005""}"
