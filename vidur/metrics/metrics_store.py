@@ -497,11 +497,20 @@ class MetricsStore:
             request.id, request.total_tokens
         )
         self._request_metrics_histogram[
+            RequestMetricsHistogram.REQUEST_NUM_INPUT_TOKENS
+        ].put(request.id, request.total_input_tokens)
+        self._request_metrics_histogram[
             RequestMetricsHistogram.REQUEST_PREFILL_TOKENS
         ].put(request.id, request.num_prefill_tokens)
         self._request_metrics_histogram[
             RequestMetricsHistogram.REQUEST_DECODE_TOKENS
         ].put(request.id, request.num_decode_tokens)
+        self._request_metrics_histogram[
+            RequestMetricsHistogram.REQUEST_ENCODER_TOKENS
+        ].put(request.id, request.num_encoder_tokens)
+        self._request_metrics_histogram[
+            RequestMetricsHistogram.REQUEST_NUM_MODALITIES
+        ].put(request.id, request.num_modalities)
         self._request_metrics_histogram[RequestMetricsHistogram.REQUEST_PD_RATIO].put(
             request.id, request.pd_ratio
         )
@@ -567,6 +576,17 @@ class MetricsStore:
             (request.prefill_completed_at - request.scheduled_at)
             / request.num_prefill_tokens,
         )
+        if request.has_modalities:
+            self._request_metrics_time_distributions[
+                RequestMetricsTimeDistributions.MULTIMODAL_PREFILL_TIME_E2E
+            ].put(request.id, request.prefill_completed_at - request.arrived_at)
+            self._request_metrics_time_distributions[
+                RequestMetricsTimeDistributions.MULTIMODAL_PREFILL_TIME_EXECUTION_PLUS_PREEMPTION_NORMALIZED
+            ].put(
+                request.id,
+                (request.prefill_completed_at - request.scheduled_at)
+                / request.total_input_tokens,
+            )
         self._request_metrics_time_distributions[
             RequestMetricsTimeDistributions.DECODE_TIME_EXECUTION_PLUS_PREEMPTION_NORMALIZED
         ].put(
@@ -670,9 +690,24 @@ class MetricsStore:
             batch.num_prefill_tokens,
         )
         self._push_metric(
+            BatchMetricsCountDistribution.BATCH_NUM_TEXT_PREFILL_TOKENS,
+            batch.id,
+            batch.num_text_prefill_tokens,
+        )
+        self._push_metric(
             BatchMetricsCountDistribution.BATCH_NUM_DECODE_TOKENS,
             batch.id,
             batch.num_decode_tokens,
+        )
+        self._push_metric(
+            BatchMetricsCountDistribution.BATCH_NUM_ENCODER_TOKENS,
+            batch.id,
+            batch.num_encoder_tokens,
+        )
+        self._push_metric(
+            BatchMetricsCountDistribution.BATCH_NUM_MULTIMODAL_REQUESTS,
+            batch.id,
+            batch.num_multimodal_requests,
         )
         self._push_metric(
             BatchMetricsCountDistribution.BATCH_SIZE, batch.id, batch.size
@@ -749,6 +784,13 @@ class MetricsStore:
                     OperationMetrics.ATTN_PREFILL,
                     batch_id,
                     execution_time.attention_prefill_execution_time,
+                )
+
+            if execution_time.multimodal_encoder_execution_time != 0:
+                self._push_metric(
+                    OperationMetrics.MULTIMODAL_ENCODER,
+                    batch_id,
+                    execution_time.multimodal_encoder_execution_time,
                 )
 
             if execution_time.attention_decode_execution_time != 0:

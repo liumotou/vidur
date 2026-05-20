@@ -12,6 +12,7 @@ class OperationMetrics(enum.Enum):
     ATTN_POST_PROJ = "attn_post_proj"
     ATTN_POST_PROJ_ALL_REDUCE = "attn_post_proj_all_reduce"
     ATTN_PREFILL = "attn_prefill"
+    MULTIMODAL_ENCODER = "multimodal_encoder"
     ATTN_KV_CACHE_SAVE = "attn_kv_cache_save"
     ATTN_DECODE = "attn_decode"
     ATTN_ROPE = "attn_rope"
@@ -48,6 +49,10 @@ class RequestMetricsTimeDistributions(enum.Enum):
     PREFILL_TIME_EXECUTION_PLUS_PREEMPTION_NORMALIZED = (
         "prefill_time_execution_plus_preemption_normalized"
     )
+    MULTIMODAL_PREFILL_TIME_E2E = "multimodal_prefill_e2e_time"
+    MULTIMODAL_PREFILL_TIME_EXECUTION_PLUS_PREEMPTION_NORMALIZED = (
+        "multimodal_prefill_time_execution_plus_preemption_normalized"
+    )
     DECODE_TIME_EXECUTION_PLUS_PREEMPTION_NORMALIZED = (
         "decode_time_execution_plus_preemption_normalized"
     )
@@ -62,8 +67,11 @@ class TokenMetricsTimeDistribution(enum.Enum):
 class RequestMetricsHistogram(enum.Enum):
     REQUEST_INTER_ARRIVAL_DELAY = "request_inter_arrival_delay"
     REQUEST_NUM_TOKENS = "request_num_tokens"
+    REQUEST_NUM_INPUT_TOKENS = "request_num_input_tokens"
     REQUEST_PREFILL_TOKENS = "request_num_prefill_tokens"
     REQUEST_DECODE_TOKENS = "request_num_decode_tokens"
+    REQUEST_ENCODER_TOKENS = "request_num_encoder_tokens"
+    REQUEST_NUM_MODALITIES = "request_num_modalities"
     REQUEST_PD_RATIO = "request_pd_ratio"
     REQUEST_NUM_RESTARTS = "request_num_restarts"
 
@@ -71,7 +79,10 @@ class RequestMetricsHistogram(enum.Enum):
 class BatchMetricsCountDistribution(enum.Enum):
     BATCH_NUM_TOKENS = "batch_num_tokens"
     BATCH_NUM_PREFILL_TOKENS = "batch_num_prefill_tokens"
+    BATCH_NUM_TEXT_PREFILL_TOKENS = "batch_num_text_prefill_tokens"
     BATCH_NUM_DECODE_TOKENS = "batch_num_decode_tokens"
+    BATCH_NUM_ENCODER_TOKENS = "batch_num_encoder_tokens"
+    BATCH_NUM_MULTIMODAL_REQUESTS = "batch_num_multimodal_requests"
     BATCH_SIZE = "batch_size"
 
 
