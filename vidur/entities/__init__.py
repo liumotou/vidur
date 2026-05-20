@@ -3,11 +3,12 @@ from vidur.entities.batch_stage import BatchStage
 from vidur.entities.cluster import Cluster
 from vidur.entities.execution_time import ExecutionTime
 from vidur.entities.replica import Replica
-from vidur.entities.request import Request, RequestModality, RequestWorkload
+from vidur.entities.request import Request, RequestModality, RequestPhase, RequestWorkload
 
 __all__ = [
     Request,
     RequestModality,
+    RequestPhase,
     RequestWorkload,
     Replica,
     Batch,

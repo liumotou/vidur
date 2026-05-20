@@ -9,6 +9,7 @@ class ExecutionTime(BaseEntity):
         attention_kv_cache_save_execution_time: float,
         attention_decode_execution_time: float,
         attention_prefill_execution_time: float,
+        multimodal_encoder_execution_time: float,
         attention_layer_pre_proj_execution_time: float,
         attention_layer_post_proj_execution_time: float,
         mlp_layer_up_proj_execution_time: float,
@@ -34,6 +35,7 @@ class ExecutionTime(BaseEntity):
         )
         self._attention_decode_execution_time = attention_decode_execution_time
         self._attention_prefill_execution_time = attention_prefill_execution_time
+        self._multimodal_encoder_execution_time = multimodal_encoder_execution_time
         self._attention_layer_pre_proj_execution_time = (
             attention_layer_pre_proj_execution_time
         )
@@ -73,6 +75,7 @@ class ExecutionTime(BaseEntity):
             + self._attention_kv_cache_save_execution_time
             + self._attention_decode_execution_time
             + self._attention_prefill_execution_time
+            + self._multimodal_encoder_execution_time
             + self._tensor_parallel_communication_time
             + self._attn_norm_time
         )
@@ -140,6 +143,10 @@ class ExecutionTime(BaseEntity):
     @property
     def attention_prefill_execution_time(self) -> float:
         return self._attention_prefill_execution_time
+
+    @property
+    def multimodal_encoder_execution_time(self) -> float:
+        return self._multimodal_encoder_execution_time
 
     @property
     def pipeline_parallel_communication_time(self) -> float:

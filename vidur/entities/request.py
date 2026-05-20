@@ -60,6 +60,13 @@ class RequestWorkload:
         }
 
 
+class RequestPhase:
+    ENCODER_PREFILL = "encoder_prefill"
+    TEXT_PREFILL = "text_prefill"
+    DECODE = "decode"
+    COMPLETED = "completed"
+
+
 # a decorator which checks if the request has been scheduled
 def check_scheduled(func):
     def wrapper(self, *args, **kwargs):
@@ -240,6 +247,10 @@ class Request(BaseEntity):
         return self._workload.total_input_tokens
 
     @property
+    def num_text_prefill_tokens(self) -> int:
+        return self._num_prefill_tokens
+
+    @property
     def num_prefill_tokens(self) -> int:
         return self._num_prefill_tokens
 
@@ -258,6 +269,10 @@ class Request(BaseEntity):
     @property
     def total_tokens(self) -> int:
         return self._num_prefill_tokens + self._num_decode_tokens
+
+    @property
+    def total_work_tokens(self) -> int:
+        return self.total_input_tokens + self._num_decode_tokens
 
     @property
     def num_processed_prefill_tokens(self) -> int:
@@ -290,6 +305,19 @@ class Request(BaseEntity):
     @property
     def has_started_decode(self) -> bool:
         return self._num_processed_tokens > self._num_prefill_tokens + 1
+
+    @property
+    def current_phase(self) -> str:
+        if self.completed:
+            return RequestPhase.COMPLETED
+
+        if self.is_prefill_complete:
+            return RequestPhase.DECODE
+
+        if self.has_modalities:
+            return RequestPhase.ENCODER_PREFILL
+
+        return RequestPhase.TEXT_PREFILL
 
     def on_batch_schedule(
         self,

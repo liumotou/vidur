@@ -50,6 +50,7 @@ class BaseExecutionTimePredictor(ABC):
             self._get_attention_kv_cache_save_execution_time(batch),
             self._get_attention_decode_execution_time(batch),
             self._get_attention_prefill_execution_time(batch),
+            self._get_multimodal_encoder_execution_time(batch),
             self._get_attention_layer_pre_proj_execution_time(batch),
             self._get_attention_layer_post_proj_execution_time(batch),
             self._get_mlp_layer_up_proj_execution_time(batch),
@@ -89,6 +90,10 @@ class BaseExecutionTimePredictor(ABC):
 
     @abstractmethod
     def _get_attention_prefill_execution_time(self, batch: Batch) -> float:
+        pass
+
+    @abstractmethod
+    def _get_multimodal_encoder_execution_time(self, batch: Batch) -> float:
         pass
 
     @abstractmethod

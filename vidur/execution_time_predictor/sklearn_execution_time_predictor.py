@@ -868,6 +868,30 @@ class SklearnExecutionTimePredictor(BaseExecutionTimePredictor):
             * int(len(prefill_params) > 1)
         )
 
+    def _get_multimodal_encoder_execution_time(self, batch: Batch) -> float:
+        if not batch.has_multimodal_requests:
+            return 0
+
+        total_time = 0.0
+        for request in batch.requests:
+            if request.is_prefill_complete or not request.has_modalities:
+                continue
+
+            for modality in request.modalities:
+                if modality.encoder_tokens <= 0:
+                    continue
+
+                rounded_encoder_tokens = min(
+                    max(1, round(modality.encoder_tokens)),
+                    self._config.prediction_max_prefill_chunk_size,
+                )
+                predicted_time = self._predictions["attn_prefill"][
+                    (0, rounded_encoder_tokens**2)
+                ]
+                total_time += predicted_time * modality.encoder_time_scale
+
+        return total_time
+
     def _get_schedule_time(self, batch: Batch) -> float:
         if self._config.skip_cpu_overhead_modeling:
             return 0

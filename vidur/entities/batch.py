@@ -45,6 +45,19 @@ class Batch(BaseEntity):
                 for r, t in zip(self.requests, self._num_tokens)
             ]
         )
+        self._multimodal_requests = [
+            request for request in self._requests if request.has_modalities
+        ]
+        self._num_multimodal_requests = len(self._multimodal_requests)
+        self._num_encoder_tokens = sum(
+            request.num_encoder_tokens for request in self._multimodal_requests
+        )
+        self._num_text_prefill_tokens = sum(
+            [
+                (t if not r.is_prefill_complete else 0)
+                for r, t in zip(self.requests, self._num_tokens)
+            ]
+        )
 
         self._total_num_tokens_rounded = (self._total_num_tokens + 7) // 8 * 8
 
@@ -74,8 +87,44 @@ class Batch(BaseEntity):
         return self._num_prefill_tokens
 
     @property
+    def num_text_prefill_tokens(self) -> int:
+        return self._num_text_prefill_tokens
+
+    @property
+    def num_encoder_tokens(self) -> int:
+        return self._num_encoder_tokens
+
+    @property
     def num_decode_tokens(self) -> int:
         return self.total_num_tokens - self.num_prefill_tokens
+
+    @property
+    def num_multimodal_requests(self) -> int:
+        return self._num_multimodal_requests
+
+    @property
+    def has_multimodal_requests(self) -> bool:
+        return self._num_multimodal_requests > 0
+
+    @property
+    def contains_prefill(self) -> bool:
+        return self.num_prefill_tokens > 0
+
+    @property
+    def contains_decode(self) -> bool:
+        return self.num_decode_tokens > 0
+
+    @property
+    def is_mixed_prefill_decode_batch(self) -> bool:
+        return self.contains_prefill and self.contains_decode
+
+    @property
+    def prefill_phase(self) -> str:
+        if not self.contains_prefill:
+            return "decode"
+        if self.has_multimodal_requests:
+            return "multimodal_prefill"
+        return "text_prefill"
 
     @property
     @check_scheduled
@@ -147,5 +196,9 @@ class Batch(BaseEntity):
             "request_ids": self.request_ids,
             "num_tokens": self._num_tokens,
             "num_prefill_tokens": self.num_prefill_tokens,
+            "num_text_prefill_tokens": self.num_text_prefill_tokens,
+            "num_encoder_tokens": self.num_encoder_tokens,
             "num_decode_tokens": self.num_decode_tokens,
+            "num_multimodal_requests": self.num_multimodal_requests,
+            "prefill_phase": self.prefill_phase,
         }
