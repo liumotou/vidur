@@ -215,9 +215,42 @@ class SyntheticRequestGeneratorConfig(BaseRequestGeneratorConfig):
         default=None,
         metadata={"help": "Duration of the synthetic request generator."},
     )
+    enable_multimodal: bool = field(
+        default=False,
+        metadata={"help": "Whether to attach multimodal metadata to synthetic requests."},
+    )
+    multimodal_fraction: float = field(
+        default=1.0,
+        metadata={"help": "Fraction of synthetic requests that should be multimodal."},
+    )
+    modality_name: str = field(
+        default="image",
+        metadata={"help": "Synthetic modality name."},
+    )
+    modality_item_count: int = field(
+        default=1,
+        metadata={"help": "Number of items for the synthetic modality."},
+    )
+    modality_encoder_tokens: int = field(
+        default=256,
+        metadata={"help": "Encoder token cost for the synthetic modality."},
+    )
+    modality_encoder_time_scale: float = field(
+        default=1.0,
+        metadata={"help": "Relative encoder time scale for the synthetic modality."},
+    )
+    modality_metadata: str = field(
+        default="{}",
+        metadata={"help": "JSON object string for synthetic modality metadata."},
+    )
+    request_metadata: str = field(
+        default="{}",
+        metadata={"help": "JSON object string for synthetic request metadata."},
+    )
 
     def __post_init__(self):
         self.max_tokens = self.length_generator_config.max_tokens
+        assert 0.0 <= self.multimodal_fraction <= 1.0
 
     @staticmethod
     def get_type():
@@ -245,6 +278,34 @@ class TraceRequestGeneratorConfig(BaseRequestGeneratorConfig):
     max_tokens: int = field(
         default=4096,
         metadata={"help": "Maximum tokens for the trace request generator."},
+    )
+    modalities_column: str = field(
+        default="modalities",
+        metadata={"help": "JSON list column containing multimodal descriptors."},
+    )
+    modality_column: str = field(
+        default="modality",
+        metadata={"help": "Fallback single-modality column name."},
+    )
+    modality_item_count_column: str = field(
+        default="modality_item_count",
+        metadata={"help": "Fallback modality item-count column name."},
+    )
+    modality_encoder_tokens_column: str = field(
+        default="modality_encoder_tokens",
+        metadata={"help": "Fallback modality encoder-token column name."},
+    )
+    modality_encoder_time_scale_column: str = field(
+        default="modality_encoder_time_scale",
+        metadata={"help": "Fallback modality encoder-time-scale column name."},
+    )
+    modality_metadata_column: str = field(
+        default="modality_metadata",
+        metadata={"help": "Fallback modality metadata JSON column name."},
+    )
+    request_metadata_column: str = field(
+        default="request_metadata",
+        metadata={"help": "Request metadata JSON column name."},
     )
 
     @staticmethod

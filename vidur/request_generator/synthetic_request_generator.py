@@ -1,8 +1,13 @@
+import random
 from typing import List
 
 from vidur.config import SyntheticRequestGeneratorConfig
 from vidur.entities import Request
 from vidur.request_generator.base_request_generator import BaseRequestGenerator
+from vidur.request_generator.multimodal_request_utils import (
+    build_synthetic_modalities,
+    build_synthetic_request_metadata,
+)
 from vidur.request_generator.request_interval_generator_registry import (
     RequestIntervalGeneratorRegistry,
 )
@@ -43,10 +48,17 @@ class SyntheticRequestGenerator(BaseRequestGenerator):
         if prefill_tokens is None or decode_tokens is None:
             return None
 
+        modalities = []
+        if self.config.enable_multimodal:
+            if random.random() <= self.config.multimodal_fraction:
+                modalities = build_synthetic_modalities(self.config)
+
         return Request(
             arrived_at=arrived_at,
             num_prefill_tokens=int(prefill_tokens),
             num_decode_tokens=int(decode_tokens),
+            modalities=modalities,
+            metadata=build_synthetic_request_metadata(self.config),
         )
 
     def _generate_requests(self) -> List[Request]:

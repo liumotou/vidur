@@ -6,6 +6,10 @@ import pandas as pd
 from vidur.config import TraceRequestGeneratorConfig
 from vidur.entities import Request
 from vidur.request_generator.base_request_generator import BaseRequestGenerator
+from vidur.request_generator.multimodal_request_utils import (
+    build_trace_modalities,
+    build_trace_request_metadata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,10 +85,13 @@ class TraceReplayRequestGenerator(BaseRequestGenerator):
         requests = []
 
         for _, row in self.trace_df.iterrows():
+            row_dict = row.to_dict()
             request = Request(
-                arrived_at=row["arrived_at"],
-                num_prefill_tokens=row["num_prefill_tokens"],
-                num_decode_tokens=row["num_decode_tokens"],
+                arrived_at=row_dict["arrived_at"],
+                num_prefill_tokens=row_dict["num_prefill_tokens"],
+                num_decode_tokens=row_dict["num_decode_tokens"],
+                modalities=build_trace_modalities(row_dict, self.config),
+                metadata=build_trace_request_metadata(row_dict, self.config),
             )
 
             requests.append(request)
