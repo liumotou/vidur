@@ -250,6 +250,11 @@ class SyntheticRequestGeneratorConfig(BaseRequestGeneratorConfig):
 
     def __post_init__(self):
         self.max_tokens = self.length_generator_config.max_tokens
+        self.max_input_tokens = (
+            self.max_tokens + self.modality_encoder_tokens
+            if self.enable_multimodal
+            else self.max_tokens
+        )
         assert 0.0 <= self.multimodal_fraction <= 1.0
 
     @staticmethod
@@ -307,6 +312,13 @@ class TraceRequestGeneratorConfig(BaseRequestGeneratorConfig):
         default="request_metadata",
         metadata={"help": "Request metadata JSON column name."},
     )
+    max_encoder_tokens_per_request: int = field(
+        default=0,
+        metadata={"help": "Worst-case encoder-token budget per request for memory planning."},
+    )
+
+    def __post_init__(self):
+        self.max_input_tokens = self.max_tokens + self.max_encoder_tokens_per_request
 
     @staticmethod
     def get_type():

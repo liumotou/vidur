@@ -102,6 +102,10 @@ class Replica(BaseEntity):
         return self._generator_config.max_tokens
 
     @property
+    def max_request_total_input_tokens(self) -> int:
+        return getattr(self._generator_config, "max_input_tokens", self.max_request_tokens)
+
+    @property
     def per_device_flops(self) -> float:
         return self._device_config.fp16_tflops * 2**40
 

@@ -41,7 +41,7 @@ class LightLLMReplicaScheduler(BaseReplicaScheduler):
                 request.num_decode_tokens - request.num_processed_decode_tokens - 1
             )
         else:
-            num_processed_tokens = request.num_prefill_tokens + 1
+            num_processed_tokens = request.total_input_tokens + 1
             remaining_tokens = request.num_decode_tokens - 1 - 1
 
         remaining_tokens = max(0, remaining_tokens)
@@ -65,7 +65,7 @@ class LightLLMReplicaScheduler(BaseReplicaScheduler):
 
     def _allocate_request(self, request: Request) -> None:
         if request.id not in self._allocation_map:
-            self.allocate(request.id, request.num_prefill_tokens)
+            self.allocate(request.id, self._get_request_initial_allocation_tokens(request))
             return
 
         self.allocate(request.id, 1)

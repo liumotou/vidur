@@ -1,5 +1,3 @@
-from math import ceil
-
 from vidur.entities.batch import Batch, Request
 from vidur.scheduler.replica_scheduler.base_replica_scheduler import (
     BaseReplicaScheduler,
@@ -23,9 +21,7 @@ class SarathiReplicaScheduler(BaseReplicaScheduler):
     def _can_allocate_request(self, request: Request) -> bool:
         if request.id not in self._allocation_map:
             # new request
-            num_required_blocks = ceil(
-                request.num_prefill_tokens / self._config.block_size
-            )
+            num_required_blocks = self._get_request_initial_allocation_blocks(request)
             return (
                 self._config.num_blocks
                 - self._num_allocated_blocks
@@ -39,9 +35,7 @@ class SarathiReplicaScheduler(BaseReplicaScheduler):
     def _allocate_request(self, request: Request) -> None:
         if request.id not in self._allocation_map:
             # new request
-            num_required_blocks = ceil(
-                request.num_prefill_tokens / self._config.block_size
-            )
+            num_required_blocks = self._get_request_initial_allocation_blocks(request)
             self.allocate(request.id, num_required_blocks)
             return
 

@@ -31,9 +31,14 @@ class BaseReplicaScheduler(ABC):
         self._replica_id = replica.id
         self._num_stages = num_stages
 
-        self._max_blocks_per_sequence = (
-            self._request_generator_config.max_tokens // self._config.block_size
+        self._max_request_total_input_tokens = getattr(
+            self._request_generator_config,
+            "max_input_tokens",
+            self._request_generator_config.max_tokens,
         )
+        self._max_blocks_per_sequence = (
+            self._max_request_total_input_tokens + self._config.block_size - 1
+        ) // self._config.block_size
 
         memory_planner = MemoryPlanner(self._replica_config, replica)
 
@@ -97,6 +102,16 @@ class BaseReplicaScheduler(ABC):
             return 1
 
         return request.num_prefill_tokens
+
+    def _get_request_initial_allocation_tokens(self, request: Request) -> int:
+        return request.total_input_tokens
+
+    def _get_request_initial_allocation_blocks(self, request: Request) -> int:
+        return (
+            self._get_request_initial_allocation_tokens(request)
+            + self._config.block_size
+            - 1
+        ) // self._config.block_size
 
     def add_request(self, request: Request) -> None:
         self._request_queue.append(request)

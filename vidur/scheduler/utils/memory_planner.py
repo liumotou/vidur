@@ -14,7 +14,7 @@ class MemoryPlanner:
             * 2  # one for key, one for value
             * self._replica.attention_head_dim
             * self._replica.kv_heads_per_tensor_parallel_worker
-            * self._replica.max_request_tokens
+            * self._replica.max_request_total_input_tokens
         )
 
     def _get_parameter_memory_per_device(self) -> int:
