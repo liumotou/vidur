@@ -211,6 +211,41 @@ The current multimodal support is intentionally conservative:
 * Encoder tokens are counted towards request input length and initial KV-cache/block reservation.
 * Schedulers do not yet model a separate encoder resource pool; multimodal requests still flow through the existing prefill/decode pipeline.
 
+### Verified smoke test
+
+The repository has been smoke-tested with the sample multimodal trace using a lightweight linear-regression predictor configuration. This mode is meant for fast functional validation, not final accuracy studies.
+
+```powershell
+$env:WANDB_MODE='disabled'
+python -m vidur.main `
+  --replica_config_device a100 `
+  --replica_config_model_name meta-llama/Meta-Llama-3-8B `
+  --cluster_config_num_replicas 1 `
+  --replica_config_tensor_parallel_size 1 `
+  --replica_config_num_pipeline_stages 1 `
+  --request_generator_config_type trace_replay `
+  --trace_request_generator_config_trace_file ./data/processed_traces/multimodal_vlm_sample.csv `
+  --trace_request_generator_config_max_tokens 2048 `
+  --trace_request_generator_config_max_encoder_tokens_per_request 1152 `
+  --replica_scheduler_config_type sarathi `
+  --sarathi_scheduler_config_batch_size_cap 128 `
+  --sarathi_scheduler_config_chunk_size 256 `
+  --execution_time_predictor_config_type linear_regression `
+  --linear_regression_execution_time_predictor_config_polynomial_degree 2 `
+  --linear_regression_execution_time_predictor_config_polynomial_include_bias true `
+  --linear_regression_execution_time_predictor_config_polynomial_interaction_only false `
+  --linear_regression_execution_time_predictor_config_fit_intercept true `
+  --linear_regression_execution_time_predictor_config_prediction_max_prefill_chunk_size 4096 `
+  --linear_regression_execution_time_predictor_config_prediction_max_batch_size 128 `
+  --linear_regression_execution_time_predictor_config_prediction_max_tokens_per_request 4096 `
+  --linear_regression_execution_time_predictor_config_num_training_job_threads 1 `
+  --no-metrics_config_write_metrics `
+  --no-metrics_config_enable_chrome_trace `
+  --no-metrics_config_write_json_trace
+```
+
+If you want higher-fidelity experiments, switch back to the random-forest predictor after the first smoke test passes.
+
 ## Simulator Output
 
 * The metrics will be logged to wandb directly and a copy will be stored in the `simulator_output/<TIMESTAMP>` directory. __A description of all the logged metrics can be found [here](docs/metrics.md).__
